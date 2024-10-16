@@ -1,5 +1,8 @@
+require('dotenv').config()
 const express = require('express')
 const morgan = require('morgan')
+
+const Person = require('./models/person')
 
 const PORT = 3001
 
@@ -13,7 +16,23 @@ const isEmpty = (obj) => {
   return true
 }
 
-let persons = [
+const errorHandler = (error, _, res, next) => {
+  if (error.name === 'CastError') {
+    return res.status(400).send({ error: 'malformatted id' })
+  }
+  if (error.name === 'MissingDataError' || error.name === 'MissingIdError') {
+    return res.status(400).json({ error: error.message })
+  }
+
+  console.error(error)
+  next(error)
+}
+
+const unknownEndpoint = (_, res) => {
+  res.status(404).send('<h2>Page not found</h2>')
+}
+
+/* let persons = [
   {
     id: 1,
     name: 'Arto Hellas',
@@ -34,7 +53,7 @@ let persons = [
     name: 'Mary Poppendieck',
     number: '39-23-6423122'
   }
-]
+] */
 
 const app = express()
 app.use(express.static('frontend'))
@@ -58,59 +77,107 @@ app.get('/', (_, res) => {
   res.send('Hello World')
 })
 
-app.get('/api/persons', (_, res) => {
-  res.json(persons)
+app.get('/api/persons', async (_, res) => {
+  try {
+    const people = await Person.find({})
+    res.json(people)
+  } catch (error) {
+    next(error)
+  }
 })
 
-app.get('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id)
-  const person = persons.find((person) => person.id === id)
+app.get('/api/persons/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params
+    if (!id) {
+      throw { name: 'MissingIdError', message: 'id is missing' }
+    }
 
-  if (person) {
+    const person = await Person.findById(id)
+    if (!person) {
+      return res.status(404).json({
+        error: 'person not found'
+      })
+    }
     res.json(person)
-  } else {
-    res.status(404).end()
+  } catch (error) {
+    next(error)
   }
 })
 
-app.post('/api/persons', (req, res) => {
-  const { name, number } = req.body
-  if (!name || !number) {
-    return res.status(400).json({
-      error: 'name or number is missing'
-    })
-  }
+app.post('/api/persons', async (req, res, next) => {
+  try {
+    const { name, number } = req.body
+    if (!name || !number) {
+      throw {
+        name: 'MissingDataError',
+        message: 'name and number are required'
+      }
+    }
 
-  const existingPerson = persons.find((person) => person.name === name)
-  if (existingPerson) {
-    return res.status(400).json({
-      error: 'name must be unique'
-    })
+    const person = await new Person({
+      name,
+      number
+    }).save()
+    res.json(person)
+  } catch (error) {
+    next(error)
   }
-
-  const person = {
-    id: Math.floor(Math.random() * 10000),
-    name,
-    number
-  }
-  persons = persons.concat(person)
-
-  res.json(person)
 })
 
-app.delete('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id)
-  persons = persons.filter((person) => person.id !== id)
+app.delete('/api/persons/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params
+    if (!id) {
+      throw { name: 'MissingIdError', message: 'id is missing' }
+    }
 
-  res.status(204).end()
+    await Person.findByIdAndDelete(id)
+    res.status(204).end()
+  } catch {
+    next(error)
+  }
 })
 
-app.get('/info', (req, res) => {
+app.put('/api/persons/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params
+    const { name, number } = req.body
+    if (!id) {
+      throw { name: 'MissingIdError', message: 'id is missing' }
+    }
+    if (!name || !number) {
+      throw {
+        name: 'MissingDataError',
+        message: 'name and number are required'
+      }
+    }
+
+    const person = await Person.findByIdAndUpdate(
+      id,
+      { name, number },
+      { new: true }
+    )
+    res.json(person)
+  } catch (error) {
+    next(error)
+  }
+})
+
+app.get('/info', async (req, res, next) => {
   const date = new Date()
-  res.send(
-    `<p>Phonebook has info for ${persons.length} people</p><p>${date.toString()}</p>`
-  )
+  try {
+    const count = await Person.countDocuments()
+    res.send(
+      `<p>Phonebook has info for ${count} people</p><p>${date.toString()}</p>`
+    )
+  } catch (error) {
+    next(error)
+  }
 })
+
+app.use(errorHandler)
+app.use(unknownEndpoint)
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`)
