@@ -20,6 +20,9 @@ const errorHandler = (error, _, res, next) => {
   if (error.name === 'CastError') {
     return res.status(400).send({ error: 'malformatted id' })
   }
+  if (error.name === 'ValidationError') {
+    return res.status(400).json({ error: error.message })
+  }
   if (error.name === 'MissingDataError' || error.name === 'MissingIdError') {
     return res.status(400).json({ error: error.message })
   }
