@@ -1,8 +1,8 @@
-const app = require('express')()
+const express = require('express')
 
 const PORT = 3001
 
-const persons = [
+let persons = [
   {
     id: 1,
     name: 'Arto Hellas',
@@ -25,12 +25,65 @@ const persons = [
   }
 ]
 
-app.get('/', (req, res) => {
+const app = express()
+app.use(express.json())
+
+app.get('/', (_, res) => {
   res.send('Hello World')
 })
 
-app.get('/api/persons', (req, res) => {
+app.get('/api/persons', (_, res) => {
   res.json(persons)
+})
+
+app.get('/api/persons/:id', (req, res) => {
+  const id = Number(req.params.id)
+  const person = persons.find((person) => person.id === id)
+
+  if (person) {
+    res.json(person)
+  } else {
+    res.status(404).end()
+  }
+})
+
+app.post('/api/persons', (req, res) => {
+  const { name, number } = req.body
+  if (!name || !number) {
+    return res.status(400).json({
+      error: 'name or number is missing'
+    })
+  }
+
+  const existingPerson = persons.find((person) => person.name === name)
+  if (existingPerson) {
+    return res.status(400).json({
+      error: 'name must be unique'
+    })
+  }
+
+  const person = {
+    id: Math.floor(Math.random() * 10000),
+    name,
+    number
+  }
+  persons = persons.concat(person)
+
+  res.json(person)
+})
+
+app.delete('/api/persons/:id', (req, res) => {
+  const id = Number(req.params.id)
+  persons = persons.filter((person) => person.id !== id)
+
+  res.status(204).end()
+})
+
+app.get('/info', (req, res) => {
+  const date = new Date()
+  res.send(
+    `<p>Phonebook has info for ${persons.length} people</p><p>${date.toString()}</p>`
+  )
 })
 
 app.listen(PORT, () => {
