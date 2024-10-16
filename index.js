@@ -1,6 +1,17 @@
 const express = require('express')
+const morgan = require('morgan')
 
 const PORT = 3001
+
+const isEmpty = (obj) => {
+  for (var prop in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, prop)) {
+      return false
+    }
+  }
+
+  return true
+}
 
 let persons = [
   {
@@ -26,7 +37,22 @@ let persons = [
 ]
 
 const app = express()
+app.use(express.static('frontend'))
 app.use(express.json())
+app.use(
+  morgan((tokens, req, res) => {
+    return [
+      tokens.method(req, res),
+      tokens.url(req, res),
+      tokens.status(req, res),
+      tokens.res(req, res, 'content-length'),
+      '-',
+      tokens['response-time'](req, res),
+      'ms',
+      isEmpty(req.body) ? null : JSON.stringify(req.body)
+    ].join(' ')
+  })
+)
 
 app.get('/', (_, res) => {
   res.send('Hello World')
