@@ -1,0 +1,11 @@
+{
+  "name": "persons-app-osa3",
+  "version": "1.0.0",
+  "description": "Dumbo express API",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "ronkkol1",
+  "license": "ISC"
+}
