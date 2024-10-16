@@ -80,7 +80,7 @@ app.get('/', (_, res) => {
   res.send('Hello World')
 })
 
-app.get('/api/persons', async (_, res) => {
+app.get('/api/persons', async (_, res, next) => {
   try {
     const people = await Person.find({})
     res.json(people)
@@ -137,7 +137,7 @@ app.delete('/api/persons/:id', async (req, res, next) => {
 
     await Person.findByIdAndDelete(id)
     res.status(204).end()
-  } catch {
+  } catch (error) {
     next(error)
   }
 })

@@ -5,6 +5,7 @@ if (process.argv.length < 3) {
   process.exit(1)
 }
 
+//eslint-disable-next-line
 const [_, __, password, name, number] = process.argv
 const url = `mongodb+srv://fullstack:${password}@fso-cluster-0.k69uq.mongodb.net/?retryWrites=true&w=majority&appName=fso-cluster-0`
 mongoose.set('strictQuery', false)
@@ -22,7 +23,7 @@ if (name && number) {
     number
   })
 
-  note.save().then((result) => {
+  note.save().then(() => {
     console.log(`added ${name} number ${number} to phonebook`)
     mongoose.connection.close()
     process.exit(0)
